@@ -1,15 +1,26 @@
-# Build React app
-FROM node:18 AS build
+# Stage 1: Build React app
+FROM node:18-alpine as build
 WORKDIR /app
-COPY package*.json ./
-RUN npm ci
+COPY package.json package-lock.json ./
+RUN npm install
 COPY . .
 RUN npm run build
 
-# Serve with nginx
-#test
-FROM nginx:alpine
+# Stage 2: Nginx + Certbot for HTTPS
+FROM nginx:stable-alpine
+
+# Install Certbot and bash
+RUN apk add --no-cache bash certbot certbot-nginx openssl curl
+
+# Copy React build
 COPY --from=build /app/build /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+
+# Expose ports 80 and 443
+EXPOSE 80 443
+
+# Copy entrypoint script
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
+# Start Nginx + HTTPS setup
+ENTRYPOINT ["/docker-entrypoint.sh"]
