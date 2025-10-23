@@ -1,41 +1,34 @@
-name: Deploy React App to EC2 via Docker
+name: Deploy React App to EC2 using Docker and SSH
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout Source Code
+        uses: actions/checkout@v3
 
-    - name: Build Docker image
-      run: |
-        docker build -t react-app .
+      - name: Build Docker Image
+        run: docker build -t react-app .
 
-    - name: Push Docker image to EC2 and deploy
-      uses: appleboy/scp-action@v0.1.11
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ec2-user
-        key: ${{ secrets.EC2_PRIVATE_KEY }}
-        port: 22
-        source: "./"
-        target: "/home/ec2-user/react-app"
+      - name: Copy files to EC2
+        run: |
+          echo "${{ secrets.EC2_PRIVATE_KEY }}" > key.pem
+          chmod 600 key.pem
+          scp -o StrictHostKeyChecking=no -i key.pem -r ./* ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/react-app
 
-    - name: SSH to EC2 and run container
-      uses: appleboy/ssh-action@v0.1.8
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ec2-user
-        key: ${{ secrets.EC2_PRIVATE_KEY }}
-        port: 22
-        script: |
-          cd react-app
-          docker build -t react-app .
-          docker stop react-app || true
-          docker rm react-app || true
-          docker run -d -p 80:80 --name react-app react-app
+      - name: SSH and deploy Docker container
+        run: |
+          echo "${{ secrets.EC2_PRIVATE_KEY }}" > key.pem
+          chmod 600 key.pem
+          ssh -o StrictHostKeyChecking=no -i key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            cd /home/${{ secrets.EC2_USER }}/react-app || exit 1
+            docker build -t react-app .
+            docker stop react-app || true
+            docker rm react-app || true
+            docker run -d -p 80:80 --name react-app react-app
+          EOF
