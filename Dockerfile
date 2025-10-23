@@ -6,7 +6,7 @@ RUN npm install
 COPY . .
 RUN npm run build
 
-# Production ste #
+# Production ste #dd
 
 
 FROM nginx:stable-alpine
