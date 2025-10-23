@@ -99,7 +99,7 @@ function App() {
             transition={{ duration: 1 }}
           >
             <div style={{ marginBottom: "1rem", fontFamily: "monospace" }}>
-              <p>Welcome to Aditya's DevOps Portfolio 💻</p>
+              <p>Welcome to Aditya's Personal Portfolio 💻</p>
               <p>Click or type below to explore!</p>
             </div>
 
