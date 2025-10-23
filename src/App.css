@@ -1,6 +1,6 @@
 body {
-  background-color: #001000; /* Very dark green-black terminal background */
-  color: #00ff00; /* Classic green terminal text */
+  background-color: #100000; /* Very dark red-black terminal background */
+  color: #ff3333; /* Classic red terminal text */
   font-family: "Source Code Pro", monospace, "Courier New", Courier, monospace;
   margin: 0;
 }
@@ -9,13 +9,13 @@ body {
   padding: 1.5rem;
   overflow-y: auto;
   height: 100vh;
-  background-color: #001000; /* Match body background */
-  border: 2px solid #00bb00; /* subtle green border */
-  box-shadow: 0 0 20px #00ff00b0;
+  background-color: #100000; /* Match body background */
+  border: 2px solid #bb0000; /* subtle red border */
+  box-shadow: 0 0 20px #ff4444b0;
 }
 
 .prompt {
-  color: #00ff00;
+  color: #ff3333;
   font-weight: bold;
   user-select: none;
 }
@@ -23,19 +23,19 @@ body {
 input {
   background: transparent;
   border: none;
-  color: #00ff00;
+  color: #ff3333;
   font-size: 1rem;
   width: 60%;
   outline: none;
   margin-left: 8px;
   font-family: "Source Code Pro", monospace, "Courier New", Courier, monospace;
-  caret-color: #00ff00;
+  caret-color: #ff3333;
 }
 
 pre {
   white-space: pre-wrap;
   margin: 0.5rem 0 1rem 1.5rem;
-  color: #00ff00d0; /* slightly lighter green for output text */
+  color: #ff6666d0; /* slightly lighter red for output text */
 }
 
 .button-bar {
@@ -47,9 +47,9 @@ pre {
 }
 
 button {
-  background-color: #003300;
-  color: #00ff00;
-  border: 1px solid #006600;
+  background-color: #330000;
+  color: #ff3333;
+  border: 1px solid #660000;
   border-radius: 5px;
   padding: 6px 12px;
   cursor: pointer;
@@ -58,8 +58,8 @@ button {
 }
 
 button:hover {
-  background-color: #00bb00;
-  color: #001000;
-  border-color: #00ff00;
-  box-shadow: 0 0 12px #00ff00;
+  background-color: #bb0000;
+  color: #100000;
+  border-color: #ff3333;
+  box-shadow: 0 0 12px #ff4444;
 }
