@@ -2,7 +2,7 @@ name: Deploy React App to EC2 using Docker and SSH
 
 on:
   push:
-    branches: [main]
+    branches: [ngni]
 
 jobs:
   deploy:
@@ -15,11 +15,14 @@ jobs:
       - name: Build Docker Image
         run: docker build -t react-app .
 
-      - name: Copy files to EC2
+      - name: Save Docker Image as tar
+        run: docker save react-app -o react-app.tar
+
+      - name: Copy Docker Image to EC2
         run: |
           echo "${{ secrets.EC2_PRIVATE_KEY }}" > key.pem
           chmod 600 key.pem
-          scp -o StrictHostKeyChecking=no -i key.pem -r ./* ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/react-app
+          scp -o StrictHostKeyChecking=no -i key.pem react-app.tar ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/react-app/
 
       - name: SSH and deploy Docker container
         run: |
@@ -27,8 +30,9 @@ jobs:
           chmod 600 key.pem
           ssh -o StrictHostKeyChecking=no -i key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             cd /home/${{ secrets.EC2_USER }}/react-app || exit 1
-            docker build -t react-app .
+            docker load -i react-app.tar
             docker stop react-app || true
             docker rm react-app || true
-            docker run -d -p 80:80 --name react-app react-app
+            docker run -d -p 80:80 -p 443:443 --name react-app \
+              -e DOMAIN=stalord.in -e EMAIL=admin@stalord.in react-app
           EOF
