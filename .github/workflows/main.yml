@@ -2,7 +2,7 @@ name: Deploy React App to EC2 using Docker and SSH
 
 on:
   push:
-    branches: [ngni]
+    branches: [main]
 
 jobs:
   deploy:

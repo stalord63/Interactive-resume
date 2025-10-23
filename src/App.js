@@ -83,6 +83,13 @@ function App() {
       setHistory((prev) => [...prev, { cmd, output: contactJSX }]);
       return;
     }
+    if (lowerCmd === "exit") {
+    setHistory((prev) => [...prev, { cmd, output: "Closing terminal..." }]);
+    setTimeout(() => {
+      window.close(); // Attempt to close tab
+    }, 500); // delay so user sees message
+    return;
+  }
     const output = commands[lowerCmd] || `bash: ${cmd}: command not found`;
     setHistory((prev) => [...prev, { cmd, output }]);
   };
@@ -100,7 +107,7 @@ function App() {
   return (
     <div className="terminal">
       <div style={{ marginBottom: "1rem", fontFamily: "monospace" }}>
-        <p>Welcome to Aditya's Interactive DevOps Resume 💻</p>
+        <p>Welcome to Aditya's Interactive Portfolio 💻</p>
         <p>Click or type below to explore!</p>
       </div>
 
