@@ -7,8 +7,7 @@ COPY . .
 RUN npm run build
 
 # Production step
-# for running
-#for pushing
+
 FROM nginx:stable-alpine
 COPY --from=build /app/build /usr/share/nginx/html
 EXPOSE 80
