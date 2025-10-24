@@ -12,7 +12,7 @@ Frameworks: FastAPI, Spring Boot
 Tools: Jenkins, Docker, Kubernetes, Terraform, Ansible, Prometheus
 Cloud: Azure`,
   experience: `Optum (2021–Present)
-Role: Associate Software Engineer (DevOps)
+Role: Software Engineer (DevOps)
 • Decommissioned license-heavy deployment tools → Saved $150K/year.
 • Built Jenkins & GitHub Actions CI/CD pipelines.
 • Migrated multiple apps to Azure → $50K cost optimization.
