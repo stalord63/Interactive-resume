@@ -35,6 +35,14 @@ jobs:
               docker stop react-app
               docker rm react-app
             fi
-            docker run -d --name react-app -p 3000:3000 react-app
+            docker run -d \
+              --name react-app \
+              -p 80:80 -p 443:443 \
+              -v /etc/letsencrypt/live/stalord.in:/etc/letsencrypt/live/stalord.in:ro \
+              -v /etc/letsencrypt/archive/stalord.in:/etc/letsencrypt/archive/stalord.in:ro \
+              -v /etc/letsencrypt/renewal:/etc/letsencrypt/renewal:ro \
+              -e DOMAIN=stalord.in \
+              -e EMAIL=admin@stalord.in \
+              react-app
           EOF
 
