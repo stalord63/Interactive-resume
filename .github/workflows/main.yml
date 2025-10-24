@@ -73,24 +73,9 @@ jobs:
             sudo nginx -t
             sudo systemctl restart nginx
 
-            # # Obtain or renew SSL
-            # sudo certbot --nginx -d stalord.in -d www.stalord.in --agree-tos -m admin@stalord.in --non-interactive || true
-            CERT_FILE="/etc/letsencrypt/live/stalord.in/fullchain.pem"
-            if [ ! -f "$CERT_FILE" ]; then
-              echo "No cert found, requesting new certificate..."
-              sudo certbot --nginx -d stalord.in -d www.stalord.in --agree-tos -m admin@stalord.in --non-interactive
-            else
-                expiry_ts=$(sudo openssl x509 -in "$CERT_FILE" -noout -enddate | cut -d= -f2 | xargs -I{} date -d "{}" +%s)
-                now_ts=$(date +%s)
-                days_left=$(( (expiry_ts - now_ts) / 86400 ))
-                echo "Certificate expires in $days_left days"
-            if [ "$days_left" -lt 30 ]; then
-                  echo "Cert expiring soon, renewing..."
-                  sudo certbot renew --nginx --agree-tos --non-interactive
-              else
-                  echo "Cert valid, skipping issuance"
-              fi
-            fi
+            # Obtain or renew SSL
+            sudo certbot --nginx -d stalord.in -d www.stalord.in --agree-tos -m admin@stalord.in --non-interactive || true
+            
 
             # Restart Nginx after SSL
             sudo systemctl restart nginx
