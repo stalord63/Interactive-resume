@@ -1,6 +1,6 @@
 body {
-  background-color: #001000; /* Very dark green-black terminal background */
-  color: #00ff00; /* Classic bright green terminal text */
+  background-color: #001000;
+  color: #00ff00;
   font-family: "Source Code Pro", monospace, "Courier New", Courier, monospace;
   margin: 0;
 }
@@ -9,15 +9,14 @@ body {
   padding: 1.5rem;
   overflow-y: auto;
   height: 100vh;
-  background-color: #001000; /* Match body background */
-  border: 2px solid #00bb00; /* subtle green border */
+  background-color: #001000;
+  border: 2px solid #00bb00;
   box-shadow: 0 0 20px #00ff00b0;
 }
 
 .prompt {
   color: #00ff00;
   font-weight: bold;
-  user-select: none;
 }
 
 input {
@@ -28,14 +27,13 @@ input {
   width: 60%;
   outline: none;
   margin-left: 8px;
-  font-family: "Source Code Pro", monospace, "Courier New", Courier, monospace;
   caret-color: #00ff00;
 }
 
 pre {
   white-space: pre-wrap;
   margin: 0.5rem 0 1rem 1.5rem;
-  color: #66ff66d0; /* slightly lighter green for output text */
+  color: #66ff66d0;
 }
 
 .button-bar {
@@ -54,7 +52,7 @@ button {
   padding: 6px 12px;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-family: "Source Code Pro", monospace, "Courier New", Courier, monospace;
+  font-family: "Source Code Pro", monospace;
 }
 
 button:hover {
@@ -62,4 +60,49 @@ button:hover {
   color: #001000;
   border-color: #00ff00;
   box-shadow: 0 0 12px #00ff00;
+}
+
+.contact-card {
+  background: linear-gradient(135deg, #00ffcc, #00ff00);
+  color: #001000;
+  padding: 1rem 1.5rem;
+  border-radius: 10px;
+  margin-top: 1rem;
+  width: fit-content;
+  box-shadow: 0 0 25px #00ff80a0;
+  font-family: "Source Code Pro", monospace;
+}
+
+.contact-card a {
+  color: #001000;
+  text-decoration: underline;
+  font-weight: bold;
+}
+
+.contact-card h3 {
+  margin-bottom: 0.8rem;
+  text-shadow: 0 0 6px #00ff00;
+}
+
+.resume-download {
+  margin-top: 1rem;
+  color: #00ff80;
+}
+
+.resume-download a {
+  color: #00ffff;
+  font-weight: bold;
+  text-decoration: underline;
+}
+
+.goodbye-screen {
+  background: black;
+  color: #00ff00;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 2rem;
+  font-family: "Source Code Pro", monospace;
+  flex-direction: column;
 }
