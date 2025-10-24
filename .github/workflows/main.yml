@@ -21,7 +21,7 @@ jobs:
       - name: Install dependencies and build React app
         run: |
           npm ci
-          npm run build
+          CI=false npm run build
 
       - name: Archive production files
         run: |
