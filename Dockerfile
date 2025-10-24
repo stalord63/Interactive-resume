@@ -9,7 +9,7 @@ RUN npm run build
 # Stage 2: Nginx + Certbot for HTTPS
 FROM nginx:stable-alpine
 
-# Install Certbot and bash test
+# Install Certbot and bash test test
 RUN apk add --no-cache bash certbot certbot-nginx openssl curl
 
 # Copy React build
