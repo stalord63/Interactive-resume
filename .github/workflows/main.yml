@@ -3,7 +3,7 @@ name: Deploy React App to EC2 (No Docker, HTTPS)
 on:
   push:
     branches:
-      - main
+      - main_wthout_docker
 
 jobs:
   build-deploy:
