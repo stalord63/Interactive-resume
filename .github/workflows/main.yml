@@ -61,7 +61,7 @@ jobs:
             mkdir -p /home/$USER/build
             tar -xzf /home/$USER/build.tar.gz -C /home/$USER/build
 
-            # Move build to web root
+            # Move build to web rootd
             sudo rm -rf /var/www/html/*
             sudo mv /home/$USER/build/* /var/www/html/
 
