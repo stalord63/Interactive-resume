@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import "./App.css";
 
@@ -37,21 +37,39 @@ Delivered 93% OCR accuracy.`,
 • 30% faster deployment time achieved`,
 };
 
-const contactJSX = (
-  <div>
-    <div>
-      Email: <a href="mailto:adi06031998@gmail.com">adi06031998@gmail.com</a>
-    </div>
-    <div>
-      Phone: <a href="tel:+918875811269">+91 88758 11269</a>
-    </div>
-    <div>
-      GitHub: <a href="https://github.com/stalord63">github.com/stalord63</a>
-    </div>
-    <div>
-      LinkedIn: <a href="https://linkedin.com/in/aditya-singh-264627203">linkedin.com/in/aditya-singh-264627203</a>
-    </div>
-  </div>
+const ContactCard = () => (
+  <motion.div
+    className="contact-card"
+    initial={{ opacity: 0, scale: 0.9 }}
+    animate={{ opacity: 1, scale: 1 }}
+    transition={{ duration: 0.4 }}
+  >
+    <h3>📬 Contact Information</h3>
+    <p>
+      <strong>Email:</strong>{" "}
+      <a href="mailto:adi06031998@gmail.com">adi06031998@gmail.com</a>
+    </p>
+    <p>
+      <strong>Phone:</strong>{" "}
+      <a href="tel:+918875811269">+91 88758 11269</a>
+    </p>
+    <p>
+      <strong>GitHub:</strong>{" "}
+      <a href="https://github.com/stalord63" target="_blank" rel="noreferrer">
+        github.com/stalord63
+      </a>
+    </p>
+    <p>
+      <strong>LinkedIn:</strong>{" "}
+      <a
+        href="https://linkedin.com/in/aditya-singh-264627203"
+        target="_blank"
+        rel="noreferrer"
+      >
+        linkedin.com/in/aditya-singh-264627203
+      </a>
+    </p>
+  </motion.div>
 );
 
 function App() {
@@ -61,21 +79,57 @@ function App() {
 
   const handleCommand = (cmd) => {
     const lowerCmd = cmd.toLowerCase();
+
     if (lowerCmd === "clear") {
       setHistory([]);
       return;
     }
+
+    // ✅ Each command replaces the previous (tab-like behavior)
+    setHistory([]);
+
     if (lowerCmd === "contact") {
-      setHistory((prev) => [...prev, { cmd, output: contactJSX }]);
+      setHistory([{ cmd, output: <ContactCard /> }]);
       return;
     }
+
+    if (lowerCmd === "resume") {
+      const resumeUrl =
+        "https://raw.githubusercontent.com/stalord63/Interactive-resume/main/Aditya_resume.pdf"; // replace with your real resume link
+
+      // Trigger auto-download
+      const link = document.createElement("a");
+      link.href = resumeUrl;
+      link.download = "Aditya_Kumar_Singh_Resume.pdf";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      setHistory([
+        {
+          cmd,
+          output: (
+            <motion.div
+              className="resume-download"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              📄 Resume is being downloaded...
+            </motion.div>
+          ),
+        },
+      ]);
+      return;
+    }
+
     if (lowerCmd === "exit") {
-      setHistory((prev) => [...prev, { cmd, output: "Shutting down..." }]);
-      setTimeout(() => setExitTerminal(true), 800); // trigger goodbye display
+      setHistory([{ cmd, output: "Shutting down..." }]);
+      setTimeout(() => setExitTerminal(true), 800);
       return;
     }
+
     const output = commands[lowerCmd] || `bash: ${cmd}: command not found`;
-    setHistory((prev) => [...prev, { cmd, output }]);
+    setHistory([{ cmd, output }]);
   };
 
   const handleSubmit = (e) => {
@@ -86,7 +140,7 @@ function App() {
     }
   };
 
-  const commandList = Object.keys(commands).concat("contact", "exit");
+  const commandList = Object.keys(commands).concat("contact", "resume", "exit");
 
   return (
     <div>
@@ -120,7 +174,12 @@ function App() {
                   transition={{ duration: 0.3 }}
                 >
                   {item.cmd && <span className="prompt">$ {item.cmd}</span>}
-                  <pre style={{ whiteSpace: item.output && item.output.type ? "normal" : "pre-wrap" }}>
+                  <pre
+                    style={{
+                      whiteSpace:
+                        item.output && item.output.type ? "normal" : "pre-wrap",
+                    }}
+                  >
                     {typeof item.output === "string" ? item.output : ""}
                   </pre>
                   {typeof item.output !== "string" ? item.output : null}
@@ -147,17 +206,6 @@ function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 1.2 }}
-            style={{
-              background: "black",
-              color: "#00ff00",
-              height: "100vh",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              fontSize: "2rem",
-              fontFamily: "monospace",
-              flexDirection: "column",
-            }}
           >
             <div>💻 Terminal Closed</div>
             <div>Goodbye, see you soon! 👋</div>
