@@ -95,7 +95,7 @@ function App() {
 
     if (lowerCmd === "resume") {
       const resumeUrl =
-        "https://raw.githubusercontent.com/stalord63/Interactive-resume/main/Aditya_resume.pdf"; // replace with your real resume link
+        "https://raw.githubusercontent.com/stalord63/Interactive-resume/resume/Aditya_resume.pdf"; // replace with your real resume link
 
       // Trigger auto-download
       const link = document.createElement("a");
