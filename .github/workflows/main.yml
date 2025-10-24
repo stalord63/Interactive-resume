@@ -1,58 +1,84 @@
-name: Deploy React App to EC2 using Docker and SSH
+name: Deploy React App to EC2 (No Docker, HTTPS)
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
-  deploy:
+  build-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Source Code
-        uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Build Docker Image
-        run: docker build -t react-app .
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
 
-      - name: Save Docker Image as tar
-        run: docker save react-app -o react-app.tar
-
-      - name: Copy Docker Image to EC2
+      - name: Install dependencies and build React app
         run: |
-          echo "${{ secrets.EC2_PRIVATE_KEY }}" > key.pem
-          chmod 600 key.pem
-          scp -o StrictHostKeyChecking=no -i key.pem react-app.tar ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/react-app/
+          npm ci
+          npm run build
 
-      # - name: SSH and deploy Docker container fix
-      #   run: |
-      #     echo "${{ secrets.EC2_PRIVATE_KEY }}" > key.pem
-      #     chmod 600 key.pem
-      #     ssh -o StrictHostKeyChecking=no -i key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-      #       cd /home/${{ secrets.EC2_USER }}/react-app || exit 1
-      #       docker load -i react-app.tar
-      #       docker stop react-app || true
-      #       docker rm react-app || true
-      #       docker run -d -p 80:80 -p 443:443 --name react-app \
-      #         -e DOMAIN=stalord.in -e EMAIL=admin@stalord.in react-app
-      #     EOF
-      - name: SSH and deploy Docker container
+      - name: Archive production files
         run: |
-          echo "${{ secrets.EC2_PRIVATE_KEY }}" > key.pem
-          chmod 600 key.pem
-          ssh -o StrictHostKeyChecking=no -i key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-          cd /home/${{ secrets.EC2_USER }}/react-app || exit 1
-          docker load -i react-app.tar
-          if [ $(docker ps -aq -f name=react-app) ]; then
-            docker stop react-app
-            docker rm react-app
-            fi
+          tar -czf build.tar.gz -C build .
 
-          docker run -d \
-            --name react-app \
-            -p 80:80 -p 443:443 \
-            -v /etc/letsencrypt/live/stalord.in:/etc/letsencrypt/live/stalord.in \
-            -e DOMAIN=stalord.in \
-            -e EMAIL=admin@stalord.in \
-            react-app
+      - name: Copy build files to EC2
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          EC2_KEY: ${{ secrets.EC2_PRIVATE_KEY }}
+        run: |
+          echo "$EC2_KEY" > private_key.pem
+          chmod 600 private_key.pem
+          scp -o StrictHostKeyChecking=no -i private_key.pem build.tar.gz $EC2_USER@$EC2_HOST:/home/$EC2_USER/
+
+      - name: Deploy on EC2
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          EC2_KEY: ${{ secrets.EC2_KEY }}
+        run: |
+          echo "$EC2_KEY" > private_key.pem
+          chmod 600 private_key.pem
+
+          ssh -o StrictHostKeyChecking=no -i private_key.pem $EC2_USER@$EC2_HOST << 'EOF'
+            set -e
+            sudo systemctl stop nginx || true
+
+            # Extract new build
+            rm -rf /home/$USER/build
+            mkdir -p /home/$USER/build
+            tar -xzf /home/$USER/build.tar.gz -C /home/$USER/build
+
+            # Move to nginx web root
+            sudo rm -rf /var/www/html/*
+            sudo mv /home/$USER/build/* /var/www/html/
+
+            # Configure Nginx
+            sudo bash -c 'cat > /etc/nginx/sites-available/default' << NGINX_CONF
+            server {
+                listen 80;
+                server_name stalord.in www.stalord.in;
+
+                root /var/www/html;
+                index index.html;
+
+                location / {
+                    try_files \$uri /index.html;
+                }
+            }
+            NGINX_CONF
+
+            sudo nginx -t
+            sudo systemctl restart nginx
+
+            # Obtain or renew SSL
+            sudo certbot --nginx -d stalord.in -d www.stalord.in --agree-tos -m admin@stalord.in --non-interactive || true
+
+            sudo systemctl restart nginx
           EOF
