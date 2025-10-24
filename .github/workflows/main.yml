@@ -55,4 +55,4 @@ jobs:
             -e DOMAIN=stalord.in \
             -e EMAIL=admin@stalord.in \
             react-app
-            EOF
+          EOF
