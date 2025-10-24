@@ -37,46 +37,46 @@ jobs:
           chmod 600 private_key.pem
           scp -o StrictHostKeyChecking=no -i private_key.pem build.tar.gz $EC2_USER@$EC2_HOST:/home/$EC2_USER/
 
-     - name: Deploy on EC2
-  env:
-    EC2_HOST: ${{ secrets.EC2_HOST }}
-    EC2_USER: ${{ secrets.EC2_USER }}
-    EC2_KEY: ${{ secrets.EC2_PRIVATE_KEY }}
-  run: |
-    echo "$EC2_KEY" > private_key.pem
-    chmod 600 private_key.pem
+      - name: Deploy on EC2
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          EC2_KEY: ${{ secrets.EC2_PRIVATE_KEY }}
+        run: |
+            echo "$EC2_KEY" > private_key.pem
+            chmod 600 private_key.pem
 
-    # Copy React build and Nginx config to EC2
-    scp -o StrictHostKeyChecking=no -i private_key.pem build.tar.gz $EC2_USER@$EC2_HOST:/home/$EC2_USER/
-    scp -o StrictHostKeyChecking=no -i private_key.pem nginx/react-app.conf $EC2_USER@$EC2_HOST:/home/$EC2_USER/react-app.conf
+         
+            scp -o StrictHostKeyChecking=no -i private_key.pem build.tar.gz $EC2_USER@$EC2_HOST:/home/$EC2_USER/
+            scp -o StrictHostKeyChecking=no -i private_key.pem nginx/react-app.conf $EC2_USER@$EC2_HOST:/home/$EC2_USER/react-app.conf
 
-    ssh -o StrictHostKeyChecking=no -i private_key.pem $EC2_USER@$EC2_HOST << 'EOF'
-      set -e
+            ssh -o StrictHostKeyChecking=no -i private_key.pem $EC2_USER@$EC2_HOST << 'EOF'
+            set -e
 
-      # Stop Nginx
-      sudo systemctl stop nginx || true
+            # Stop Nginx
+            sudo systemctl stop nginx || true
 
-      # Extract build
-      rm -rf /home/$USER/build
-      mkdir -p /home/$USER/build
-      tar -xzf /home/$USER/build.tar.gz -C /home/$USER/build
+            # Extract build
+            rm -rf /home/$USER/build
+            mkdir -p /home/$USER/build
+            tar -xzf /home/$USER/build.tar.gz -C /home/$USER/build
 
-      # Move build to web root
-      sudo rm -rf /var/www/html/*
-      sudo mv /home/$USER/build/* /var/www/html/
+            # Move build to web root
+            sudo rm -rf /var/www/html/*
+            sudo mv /home/$USER/build/* /var/www/html/
 
-      # Copy Nginx config
-      sudo mv /home/$USER/react-app.conf /etc/nginx/sites-available/react-app.conf
-      sudo ln -sf /etc/nginx/sites-available/react-app.conf /etc/nginx/sites-enabled/react-app.conf
+            # Copy Nginx config
+            sudo mv /home/$USER/react-app.conf /etc/nginx/sites-available/react-app.conf
+            sudo ln -sf /etc/nginx/sites-available/react-app.conf /etc/nginx/sites-enabled/react-app.conf
 
-      # Test and restart Nginx
-      sudo nginx -t
-      sudo systemctl restart nginx
+            # Test and restart Nginx
+            sudo nginx -t
+            sudo systemctl restart nginx
 
-      # Obtain or renew SSL
-      sudo certbot --nginx -d stalord.in -d www.stalord.in --agree-tos -m admin@stalord.in --non-interactive || true
+            # Obtain or renew SSL
+            sudo certbot --nginx -d stalord.in -d www.stalord.in --agree-tos -m admin@stalord.in --non-interactive || true
 
-      # Restart Nginx after SSL
-      sudo systemctl restart nginx
-    EOF
+            # Restart Nginx after SSL
+            sudo systemctl restart nginx
+            EOF
 
