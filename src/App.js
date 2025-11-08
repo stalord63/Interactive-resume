@@ -16,12 +16,23 @@ Frameworks: FastAPI, Spring Boot
 Tools: Jenkins, Docker, Kubernetes, Terraform, Ansible, Prometheus
 Cloud: Azure`,
 
-  experience: `Optum (2021–Present)
+ experience: `Optum (2021–Present)
 Role: Software Engineer (DevOps)
-• Decommissioned license-heavy deployment tools → Saved $150K/year.
-• Built Jenkins & GitHub Actions CI/CD pipelines.
-• Migrated multiple apps to Azure → $50K cost optimization.
-• Authored Python CLIs to standardize deployments.`,
+
+• Replaced decommissioned CA Release Automation with custom Python-based deployment scripts.
+• Added 100+ Jenkins jobs for 10+ teams to GitHub Actions, saving Jenkins infrastructure costs and reducing maintenance overhead.
+• Designed and implemented CI/CD pipelines using GitHub Actions, Jenkins, and Azure DevOps for multiple teams, streamlining deployments across diverse environments.
+• Developed a Python utility leveraging the OpenAI API to convert Jenkinsfiles into GitHub Actions workflows.
+• Automated deployments to Linux servers, AS/400 systems, and Azure Kubernetes Service (AKS).
+• Collaborated with cross-functional teams to customize workflows for project-specific needs, reducing deployment time significantly.
+• Created a custom CLI tool using Python to help developers generate CI/CD pipelines for AS/400 systems.
+• Migrated on-premises applications to Azure Cloud.
+• Developed a Python-based utility to fetch daily reports automatically and store them in Azure Blob Storage.
+• Acted as a primary point of contact for client escalations during release/sprint cycles.
+• Migrated various jobs from on-prem JFrog Artifactory to Cloud Artifactory and Azure Container Registry (ACR).
+• Conducted a proof of concept (POC) for deployments to Azure Cloud.
+• Developed an on-prem API to connect legacy applications with cloud systems.`,
+
 
   certifications: (
     <div>
