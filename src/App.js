@@ -5,8 +5,10 @@ import "./App.css";
 const commands = {
   whoami: `Aditya Kumar Singh
 DevOps Engineer | Gurugram, India`,
-  summary: `DevOps Engineer with 3+ years of experience in automation, CI/CD pipelines, and Azure Cloud migrations.
-Skilled in Python, Jenkins, Kubernetes, Terraform, GitHub Actions, and Ansible.`,
+  summary: `DevOps Engineer with 4+ years of experience in automating deployments, building CI/CD pipelines, and migrating
+applications to Azure Cloud. Skilled in Python, GitHub Actions, Jenkins, Kubernetes, and Azure Cloud
+with a strong focus on cost optimization and modernization.
+Certified Microsoft Azure Fundamentals (AZ-900), Github Actions Certified Professional (GH-200)`,
   skills: `Languages: Python, Java, C++, Groovy, Bash
 Frameworks: FastAPI, Spring Boot
 Tools: Jenkins, Docker, Kubernetes, Terraform, Ansible, Prometheus
@@ -21,11 +23,21 @@ Role: Software Engineer (DevOps)
     <span>
       Microsoft Certified:{" "}
       <a
-        href="https://learn.microsoft.com/en-us/certifications/azure-fundamentals/"
+        href="https://learn.microsoft.com/en-us/users/aditya8209outlookcom-1001/credentials/68fc369c489696e7?ref=https%3A%2F%2Fwww.linkedin.com%2F"
         target="_blank"
         rel="noopener noreferrer"
       >
         Azure Fundamentals (AZ-900)
+      </a>
+    </span>
+<span>
+      Github Actions  Certified:{" "}
+      <a
+        href="https://learn.microsoft.com/en-us/users/aditya8209outlookcom-1001/credentials/7c8e9fc1d8890539?ref=https%3A%2F%2Fwww.linkedin.com%2F"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Github Actions Certification(GH-900)
       </a>
     </span>
   ),
