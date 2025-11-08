@@ -1,49 +1,58 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import "./App.css";
 
 const commands = {
   whoami: `Aditya Kumar Singh
 DevOps Engineer | Gurugram, India`,
+
   summary: `DevOps Engineer with 4+ years of experience in automating deployments, building CI/CD pipelines, and migrating
 applications to Azure Cloud. Skilled in Python, GitHub Actions, Jenkins, Kubernetes, and Azure Cloud
 with a strong focus on cost optimization and modernization.
 Certified Microsoft Azure Fundamentals (AZ-900), Github Actions Certified Professional (GH-200)`,
+
   skills: `Languages: Python, Java, C++, Groovy, Bash
 Frameworks: FastAPI, Spring Boot
 Tools: Jenkins, Docker, Kubernetes, Terraform, Ansible, Prometheus
 Cloud: Azure`,
+
   experience: `Optum (2021–Present)
 Role: Software Engineer (DevOps)
 • Decommissioned license-heavy deployment tools → Saved $150K/year.
 • Built Jenkins & GitHub Actions CI/CD pipelines.
 • Migrated multiple apps to Azure → $50K cost optimization.
 • Authored Python CLIs to standardize deployments.`,
+
   certifications: (
-    <span>
-      Microsoft Certified:{" "}
-      <a
-        href="https://learn.microsoft.com/en-us/users/aditya8209outlookcom-1001/credentials/68fc369c489696e7?ref=https%3A%2F%2Fwww.linkedin.com%2F"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Azure Fundamentals (AZ-900)
-      </a>
-    </span>
-<span>
-      Github Actions  Certified:{" "}
-      <a
-        href="https://learn.microsoft.com/en-us/users/aditya8209outlookcom-1001/credentials/7c8e9fc1d8890539?ref=https%3A%2F%2Fwww.linkedin.com%2F"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Github Actions Certification(GH-900)
-      </a>
-    </span>
+    <div>
+      <p>
+        Microsoft Certified:{" "}
+        <a
+          href="https://learn.microsoft.com/en-us/users/aditya8209outlookcom-1001/credentials/68fc369c489696e7?ref=https%3A%2F%2Fwww.linkedin.com%2F"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Azure Fundamentals (AZ-900)
+        </a>
+      </p>
+      <p>
+        GitHub Actions Certified:{" "}
+        <a
+          href="https://learn.microsoft.com/en-us/users/aditya8209outlookcom-1001/credentials/7c8e9fc1d8890539?ref=https%3A%2F%2Fwww.linkedin.com%2F"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          GitHub Actions Certification (GH-900)
+        </a>
+      </p>
+    </div>
   ),
+
   projects: `ANPR System – Python, YOLOv4, OpenCV
 Delivered 93% OCR accuracy.`,
+
   education: `B.Tech in Computer Science, KIET Group of Institutions (2017–2021)`,
+
   achievements: `• Cost optimization ~$200K+ via automation
 • Jenkinsfile to GitHub Actions converter
 • 30% faster deployment time achieved`,
@@ -97,8 +106,7 @@ function App() {
       return;
     }
 
-    // ✅ Each command replaces the previous (tab-like behavior)
-    setHistory([]);
+    setHistory([]); // replace previous command output
 
     if (lowerCmd === "contact") {
       setHistory([{ cmd, output: <ContactCard /> }]);
@@ -107,9 +115,8 @@ function App() {
 
     if (lowerCmd === "resume") {
       const resumeUrl =
-        "https://raw.githubusercontent.com/stalord63/Interactive-resume/resume/Aditya_resume.pdf"; // replace with your real resume link
+        "https://raw.githubusercontent.com/stalord63/Interactive-resume/resume/Aditya_resume.pdf";
 
-      // Trigger auto-download
       const link = document.createElement("a");
       link.href = resumeUrl;
       link.download = "Aditya_Kumar_Singh_Resume.pdf";
@@ -186,15 +193,11 @@ function App() {
                   transition={{ duration: 0.3 }}
                 >
                   {item.cmd && <span className="prompt">$ {item.cmd}</span>}
-                  <pre
-                    style={{
-                      whiteSpace:
-                        item.output && item.output.type ? "normal" : "pre-wrap",
-                    }}
-                  >
-                    {typeof item.output === "string" ? item.output : ""}
-                  </pre>
-                  {typeof item.output !== "string" ? item.output : null}
+                  {typeof item.output === "string" ? (
+                    <pre style={{ whiteSpace: "pre-wrap" }}>{item.output}</pre>
+                  ) : (
+                    item.output
+                  )}
                 </motion.div>
               ))}
             </div>
