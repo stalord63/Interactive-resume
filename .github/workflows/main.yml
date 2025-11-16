@@ -1,4 +1,87 @@
-name: Deploy React App to EC2 (No Docker, HTTPS)
+# name: Deploy React App to EC2 (No Docker, HTTPS)
+
+# on:
+#   push:
+#     branches:
+#       - main_wthout_docker
+
+# jobs:
+#   build-deploy:
+#     runs-on: ubuntu-latest
+
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v4
+
+#       - name: Setup Node.js
+#         uses: actions/setup-node@v4
+#         with:
+#           node-version: 18
+
+#       - name: Install dependencies and build React app
+#         run: |
+#           npm ci
+#           CI=false npm run build
+
+#       - name: Archive production files
+#         run: |
+#           tar -czf build.tar.gz -C build .
+
+#       - name: Copy build files to EC2
+#         env:
+#           EC2_HOST: ${{ secrets.EC2_HOST }}
+#           EC2_USER: ${{ secrets.EC2_USER }}
+#           EC2_KEY: ${{ secrets.EC2_PRIVATE_KEY }}
+#         run: |
+#           echo "$EC2_KEY" > private_key.pem
+#           chmod 600 private_key.pem
+#           scp -o StrictHostKeyChecking=no -i private_key.pem build.tar.gz $EC2_USER@$EC2_HOST:/home/$EC2_USER/
+
+#       - name: Deploy on EC2
+#         env:
+#           EC2_HOST: ${{ secrets.EC2_HOST }}
+#           EC2_USER: ${{ secrets.EC2_USER }}
+#           EC2_KEY: ${{ secrets.EC2_PRIVATE_KEY }}
+#         run: |
+#             echo "$EC2_KEY" > private_key.pem
+#             chmod 600 private_key.pem
+
+         
+#             scp -o StrictHostKeyChecking=no -i private_key.pem build.tar.gz $EC2_USER@$EC2_HOST:/home/$EC2_USER/
+#             scp -o StrictHostKeyChecking=no -i private_key.pem nginx/react-app.conf $EC2_USER@$EC2_HOST:/home/$EC2_USER/react-app.conf
+
+#             ssh -o StrictHostKeyChecking=no -i private_key.pem $EC2_USER@$EC2_HOST << 'EOF'
+#             set -e
+
+#             # Stop Nginx
+#             sudo systemctl stop nginx || true
+
+#             # Extract build
+#             rm -rf /home/$USER/build
+#             mkdir -p /home/$USER/build
+#             tar -xzf /home/$USER/build.tar.gz -C /home/$USER/build
+
+#             # Move build to web rootd
+#             sudo rm -rf /var/www/html/*
+#             sudo mv /home/$USER/build/* /var/www/html/
+
+#             # Copy Nginx config
+#             sudo mv /home/$USER/react-app.conf /etc/nginx/sites-available/react-app.conf
+#             sudo ln -sf /etc/nginx/sites-available/react-app.conf /etc/nginx/sites-enabled/react-app.conf
+
+#             # Test and restart Nginx
+#             sudo nginx -t
+#             sudo systemctl restart nginx
+
+#             # Obtain or renew SSL
+#             sudo certbot --nginx -d stalord.in -d www.stalord.in --agree-tos -m admin@stalord.in --non-interactive || true
+            
+
+#             # Restart Nginx after SSL
+#             sudo systemctl restart nginx
+#             EOF
+
+name: Deploy React App + Monitoring (Prometheus & Grafana)
 
 on:
   push:
@@ -8,6 +91,10 @@ on:
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
+    env:
+      SITE_DOMAIN: ${{ secrets.SITE_DOMAIN }}
+      EC2_HOST: ${{ secrets.EC2_HOST }}
+      EC2_USER: ${{ secrets.EC2_USER }}
 
     steps:
       - name: Checkout code
@@ -27,57 +114,248 @@ jobs:
         run: |
           tar -czf build.tar.gz -C build .
 
-      - name: Copy build files to EC2
+      - name: Create monitoring scripts
+        run: |
+          cat > install_monitoring.sh <<'BASH'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          PROMETHEUS_VERSION="${PROMETHEUS_VERSION:-2.52.0}"
+          NODE_EXPORTER_VERSION="${NODE_EXPORTER_VERSION:-1.7.0}"
+          NGINX_EXPORTER_VERSION="${NGINX_EXPORTER_VERSION:-0.11.0}"
+
+          # helper for idempotency
+          command_exists() { command -v "$1" >/dev/null 2>&1; }
+
+          # 1) create directories & user
+          sudo useradd --no-create-home --shell /usr/sbin/nologin prometheus 2>/dev/null || true
+          sudo mkdir -p /etc/prometheus /var/lib/prometheus
+          sudo chown prometheus:prometheus /etc/prometheus /var/lib/prometheus || true
+
+          # 2) Install Prometheus (if not installed)
+          if [ ! -x /usr/local/bin/prometheus ]; then
+            tmpd=$(mktemp -d)
+            cd "$tmpd"
+            curl -sL "https://github.com/prometheus/prometheus/releases/download/v${PROMETHEUS_VERSION}/prometheus-${PROMETHEUS_VERSION}.linux-amd64.tar.gz" -o prom.tar.gz
+            tar xf prom.tar.gz
+            sudo cp prometheus-${PROMETHEUS_VERSION}.linux-amd64/prometheus /usr/local/bin/
+            sudo cp prometheus-${PROMETHEUS_VERSION}.linux-amd64/promtool /usr/local/bin/
+            sudo cp -r prometheus-${PROMETHEUS_VERSION}.linux-amd64/consoles /etc/prometheus
+            sudo cp -r prometheus-${PROMETHEUS_VERSION}.linux-amd64/console_libraries /etc/prometheus
+            sudo chown -R prometheus:prometheus /etc/prometheus
+            rm -rf "$tmpd"
+          fi
+
+          # 3) Node exporter
+          if [ ! -x /usr/local/bin/node_exporter ]; then
+            tmpd=$(mktemp -d); cd "$tmpd"
+            curl -sL "https://github.com/prometheus/node_exporter/releases/download/v${NODE_EXPORTER_VERSION}/node_exporter-${NODE_EXPORTER_VERSION}.linux-amd64.tar.gz" -o node.tar.gz
+            tar xf node.tar.gz
+            sudo cp node_exporter-${NODE_EXPORTER_VERSION}.linux-amd64/node_exporter /usr/local/bin/
+            rm -rf "$tmpd"
+          fi
+
+          # systemd for node_exporter
+          sudo tee /etc/systemd/system/node_exporter.service > /dev/null <<'SYSTEMD'
+          [Unit]
+          Description=Node Exporter
+          After=network.target
+
+          [Service]
+          ExecStart=/usr/local/bin/node_exporter
+          Restart=always
+
+          [Install]
+          WantedBy=multi-user.target
+          SYSTEMD
+
+          sudo systemctl daemon-reload
+          sudo systemctl enable --now node_exporter
+
+          # 4) Nginx Prometheus Exporter
+          if [ ! -x /usr/local/bin/nginx-prometheus-exporter ]; then
+            tmpd=$(mktemp -d); cd "$tmpd"
+            curl -sL "https://github.com/nginxinc/nginx-prometheus-exporter/releases/download/v${NGINX_EXPORTER_VERSION}/nginx-prometheus-exporter_${NGINX_EXPORTER_VERSION}_linux_amd64.tar.gz" -o nginxexp.tar.gz
+            tar xf nginxexp.tar.gz
+            sudo mv nginx-prometheus-exporter /usr/local/bin/nginx-prometheus-exporter
+            rm -rf "$tmpd"
+          fi
+
+          # systemd for nginx exporter
+          sudo tee /etc/systemd/system/nginx_exporter.service > /dev/null <<'SYSTEMD'
+          [Unit]
+          Description=Nginx Prometheus Exporter
+          After=network.target
+
+          [Service]
+          ExecStart=/usr/local/bin/nginx-prometheus-exporter -nginx.scrape-uri http://127.0.0.1/nginx_status
+          Restart=always
+
+          [Install]
+          WantedBy=multi-user.target
+          SYSTEMD
+
+          sudo systemctl daemon-reload
+          sudo systemctl enable --now nginx_exporter
+
+          # 5) Prometheus config (scrape node & nginx exporter)
+          sudo tee /etc/prometheus/prometheus.yml > /dev/null <<'YML'
+          global:
+            scrape_interval: 15s
+            evaluation_interval: 15s
+
+          scrape_configs:
+            - job_name: 'prometheus'
+              static_configs:
+                - targets: ['localhost:9090']
+
+            - job_name: 'node_exporter'
+              static_configs:
+                - targets: ['localhost:9100']
+
+            - job_name: 'nginx_exporter'
+              metrics_path: /metrics
+              static_configs:
+                - targets: ['localhost:9113']
+          YML
+
+          sudo chown prometheus:prometheus /etc/prometheus/prometheus.yml
+
+          # 6) Prometheus systemd
+          sudo tee /etc/systemd/system/prometheus.service > /dev/null <<'SYSTEMD'
+          [Unit]
+          Description=Prometheus
+          Wants=network-online.target
+          After=network-online.target
+
+          [Service]
+          User=prometheus
+          ExecStart=/usr/local/bin/prometheus --config.file=/etc/prometheus/prometheus.yml --storage.tsdb.path=/var/lib/prometheus
+          Restart=always
+
+          [Install]
+          WantedBy=multi-user.target
+          SYSTEMD
+
+          sudo systemctl daemon-reload
+          sudo systemctl enable --now prometheus
+
+          # 7) Grafana (install via APT if not present)
+          if ! command_exists grafana-server; then
+            sudo apt-get update
+            sudo apt-get install -y apt-transport-https software-properties-common wget gnupg
+            wget -q -O - https://packages.grafana.com/gpg.key | sudo apt-key add -
+            sudo add-apt-repository "deb https://packages.grafana.com/oss/deb stable main"
+            sudo apt-get update
+            sudo apt-get install -y grafana
+            sudo systemctl enable --now grafana-server
+          else
+            sudo systemctl enable --now grafana-server || true
+          fi
+
+          # 8) Ensure services are running
+          sudo systemctl restart prometheus || true
+          sudo systemctl restart node_exporter || true
+          sudo systemctl restart nginx_exporter || true
+          sudo systemctl restart grafana-server || true
+
+          echo "Monitoring stack installed/updated: Prometheus, Node Exporter, Nginx Exporter, Grafana"
+          BASH
+
+          cat > ensure_nginx_status.sh <<'BASH'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          SITE_CONF=/etc/nginx/sites-available/react-app.conf
+          # If file exists, add stub_status location if not present
+          if [ -f "$SITE_CONF" ]; then
+            if ! grep -q "nginx_status" "$SITE_CONF"; then
+              # Add the location block inside the first server { ... } block
+              awk '
+              BEGIN{added=0}
+              {
+                print $0
+                if ($0 ~ /server[[:space:]]*\{/{inside=1}
+                if (inside && $0 ~ /location[[:space:]]*\/\s*\{/) { inside=0 } # avoid interfering if many locations
+                if (inside && $0 ~ /\}/ && !added) {
+                  print "    location /nginx_status {"
+                  print "        stub_status;"
+                  print "        allow 127.0.0.1;"
+                  print "        deny all;"
+                  print "    }"
+                  added=1
+                }
+              }
+              END{ }
+              ' "$SITE_CONF" > "$SITE_CONF.tmp" && sudo mv "$SITE_CONF.tmp" "$SITE_CONF"
+            fi
+            sudo nginx -t && sudo systemctl reload nginx
+          else
+            echo "Warning: $SITE_CONF not found; ensure your nginx site config includes a /nginx_status stub_status endpoint accessible from localhost."
+          fi
+          BASH
+
+          chmod +x install_monitoring.sh ensure_nginx_status.sh
+
+      - name: Copy build files and scripts to EC2
         env:
-          EC2_HOST: ${{ secrets.EC2_HOST }}
-          EC2_USER: ${{ secrets.EC2_USER }}
           EC2_KEY: ${{ secrets.EC2_PRIVATE_KEY }}
         run: |
           echo "$EC2_KEY" > private_key.pem
           chmod 600 private_key.pem
-          scp -o StrictHostKeyChecking=no -i private_key.pem build.tar.gz $EC2_USER@$EC2_HOST:/home/$EC2_USER/
 
-      - name: Deploy on EC2
+          scp -o StrictHostKeyChecking=no -i private_key.pem build.tar.gz ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/
+          scp -o StrictHostKeyChecking=no -i private_key.pem nginx/react-app.conf ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/react-app.conf
+          scp -o StrictHostKeyChecking=no -i private_key.pem install_monitoring.sh ensure_nginx_status.sh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/
+
+      - name: Deploy & Install monitoring on EC2
         env:
-          EC2_HOST: ${{ secrets.EC2_HOST }}
-          EC2_USER: ${{ secrets.EC2_USER }}
           EC2_KEY: ${{ secrets.EC2_PRIVATE_KEY }}
+          SITE_DOMAIN: ${{ secrets.SITE_DOMAIN }}
+          PROMETHEUS_VERSION: ${{ secrets.PROMETHEUS_VERSION || '' }}
+          NODE_EXPORTER_VERSION: ${{ secrets.NODE_EXPORTER_VERSION || '' }}
+          NGINX_EXPORTER_VERSION: ${{ secrets.NGINX_EXPORTER_VERSION || '' }}
         run: |
-            echo "$EC2_KEY" > private_key.pem
-            chmod 600 private_key.pem
+          echo "$EC2_KEY" > private_key.pem
+          chmod 600 private_key.pem
 
-         
-            scp -o StrictHostKeyChecking=no -i private_key.pem build.tar.gz $EC2_USER@$EC2_HOST:/home/$EC2_USER/
-            scp -o StrictHostKeyChecking=no -i private_key.pem nginx/react-app.conf $EC2_USER@$EC2_HOST:/home/$EC2_USER/react-app.conf
+          ssh -o StrictHostKeyChecking=no -i private_key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+          set -euo pipefail
 
-            ssh -o StrictHostKeyChecking=no -i private_key.pem $EC2_USER@$EC2_HOST << 'EOF'
-            set -e
+          USER=$USER
 
-            # Stop Nginx
-            sudo systemctl stop nginx || true
+          # stop nginx (if running) - safe to ignore failure
+          sudo systemctl stop nginx || true
 
-            # Extract build
-            rm -rf /home/$USER/build
-            mkdir -p /home/$USER/build
-            tar -xzf /home/$USER/build.tar.gz -C /home/$USER/build
+          # extract build
+          rm -rf /home/$USER/build || true
+          mkdir -p /home/$USER/build
+          tar -xzf /home/$USER/build.tar.gz -C /home/$USER/build
 
-            # Move build to web rootd
-            sudo rm -rf /var/www/html/*
-            sudo mv /home/$USER/build/* /var/www/html/
+          # move build files into web root
+          sudo rm -rf /var/www/html/*
+          sudo mv /home/$USER/build/* /var/www/html/
 
-            # Copy Nginx config
-            sudo mv /home/$USER/react-app.conf /etc/nginx/sites-available/react-app.conf
-            sudo ln -sf /etc/nginx/sites-available/react-app.conf /etc/nginx/sites-enabled/react-app.conf
+          # copy nginx config (from uploaded file)
+          sudo mv /home/$USER/react-app.conf /etc/nginx/sites-available/react-app.conf
+          sudo ln -sf /etc/nginx/sites-available/react-app.conf /etc/nginx/sites-enabled/react-app.conf
 
-            # Test and restart Nginx
-            sudo nginx -t
-            sudo systemctl restart nginx
+          # test and restart nginx
+          sudo nginx -t
+          sudo systemctl restart nginx
 
-            # Obtain or renew SSL
-            sudo certbot --nginx -d stalord.in -d www.stalord.in --agree-tos -m admin@stalord.in --non-interactive || true
-            
+          # Ensure nginx has /nginx_status for exporter
+          sudo /home/$USER/ensure_nginx_status.sh || true
 
-            # Restart Nginx after SSL
-            sudo systemctl restart nginx
-            EOF
+          # Run monitoring install/update script (non-interactive)
+          sudo /home/$USER/install_monitoring.sh
 
+          # obtain/renew certificate using certbot (if certbot present)
+          if command -v certbot >/dev/null 2>&1; then
+            sudo certbot --nginx -d "${SITE_DOMAIN}" -d "www.${SITE_DOMAIN}" --agree-tos -m "admin@${SITE_DOMAIN}" --non-interactive || true
+            sudo systemctl restart nginx || true
+          fi
+
+          EOF
+
+      - name: Clean up private key
+        run: |
+          shred -u private_key.pem || rm -f private_key.pem || true
