@@ -80,7 +80,7 @@
 #             # Restart Nginx after SSL
 #             sudo systemctl restart nginx
 #             EOF
-
+#             lol
 name: Deploy React App + Monitoring (Prometheus & Grafana)
 
 on:
