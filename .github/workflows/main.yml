@@ -317,7 +317,10 @@ jobs:
           echo "$EC2_KEY" > private_key.pem
           chmod 600 private_key.pem
 
-          ssh -o StrictHostKeyChecking=no -i private_key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+          ssh -o StrictHostKeyChecking=no -i private_key.pem  -o SendEnv=SITE_DOMAIN   ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}  "export SITE_DOMAIN='${SITE_DOMAIN}'; bash -s" << 'EOF'
+ 
+ 
+  
           set -euo pipefail
 
           USER=$USER
